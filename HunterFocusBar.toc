@@ -1,0 +1,8 @@
+## Interface: 16001
+## Title: Hunter Focus Bar
+## Notes: Shows hunter mana as an orange Focus bar, like pet focus. Cosmetic only.
+## Notes-esES: Muestra el maná del cazador como una barra de enfoque naranja, igual que la de las mascotas. Solo estético.
+## Author: Manu
+## Version: 1.0.0
+## SavedVariables: HunterFocusBarDB
+HunterFocusBar.lua

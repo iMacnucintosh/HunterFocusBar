@@ -1,4 +1,4 @@
--- Foco Cazador: la barra de maná del cazador se pinta con el color del enfoque.
+-- HunterFocusBar: la barra de maná del cazador se pinta con el color del enfoque.
 -- Solo cambia el aspecto; el recurso sigue siendo maná.
 --
 -- Notas sobre WoW Forever:
@@ -10,9 +10,9 @@
 --  * El coste del hechizo que se está lanzando se dibuja con una textura
 --    anclada al final del relleno de la barra; también la pintamos.
 
-local function Log(...) print("|cffff8040FocoCazador|r", ...) end
+local function Log(...) print("|cffff8040HunterFocusBar|r", ...) end
 -- Errores internos: se ignoran en silencio (el addon no escribe nada en el chat
--- salvo cuando el jugador usa /foco).
+-- salvo cuando el jugador usa /hfb).
 local function Silent() end
 
 local _, class = UnitClass("player")
@@ -32,8 +32,8 @@ local petStyle         -- aspecto copiado de la barra de la mascota
 local painting = false
 
 local function DB()
-    FocoCazadorDB = FocoCazadorDB or {}
-    return FocoCazadorDB
+    HunterFocusBarDB = HunterFocusBarDB or {}
+    return HunterFocusBarDB
 end
 
 local function Mode() return DB().mode or "liso" end
@@ -486,7 +486,7 @@ fo:SetScript("OnEvent", function()
 end)
 
 ---------------------------------------------------------------------------
--- /foco
+-- /hfb (alias /foco)
 ---------------------------------------------------------------------------
 local function ParseColor(args)
     local r, g, b = args:match("^(%S+)%s+(%S+)%s+(%S+)$")
@@ -497,15 +497,15 @@ local function ParseColor(args)
 end
 
 local AYUDA = {
-    "/foco - diagnóstico",
-    "/foco modo liso | mascota | tinte",
-    "/foco color R G B - color de la barra (0-255), /foco color reset",
-    "/foco coste R G B - color del coste del hechizo, /foco coste reset",
+    "/hfb - diagnóstico",
+    "/hfb modo liso | mascota | tinte",
+    "/hfb color R G B - color de la barra (0-255), /hfb color reset",
+    "/hfb coste R G B - color del coste del hechizo, /hfb coste reset",
 }
 
-SLASH_FOCOCAZADOR1 = "/foco"
-SLASH_FOCOCAZADOR2 = "/fococazador"
-SlashCmdList.FOCOCAZADOR = function(msg)
+SLASH_HUNTERFOCUSBAR1 = "/hfb"
+SLASH_HUNTERFOCUSBAR2 = "/foco"
+SlashCmdList.HUNTERFOCUSBAR = function(msg)
     msg = strtrim((msg or ""):lower())
     local cmd, args = msg:match("^(%S+)%s*(.*)$")
 
@@ -523,7 +523,7 @@ SlashCmdList.FOCOCAZADOR = function(msg)
             DB()[key] = nil
         else
             local c = ParseColor(args)
-            if not c then Log("uso: /foco", cmd, "R G B   (ej. 255 128 64)") return end
+            if not c then Log("uso: /hfb", cmd, "R G B   (ej. 255 128 64)") return end
             DB()[key] = c
         end
         Refresh()
@@ -544,5 +544,5 @@ SlashCmdList.FOCOCAZADOR = function(msg)
     for i, c in ipairs(costs) do
         Log("  coste", i, c:GetObjectType(), c:GetName() or "(sin nombre)")
     end
-    Log("escribe /foco ayuda para ver los comandos")
+    Log("escribe /hfb ayuda para ver los comandos")
 end

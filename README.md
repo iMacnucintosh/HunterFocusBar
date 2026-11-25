@@ -1,4 +1,4 @@
-# FocoCazador
+# HunterFocusBar
 
 Addon para **WoW Forever** que hace que el maná de los cazadores se vea como **enfoque**: barra naranja, igual que la de las mascotas. El recurso sigue siendo maná; solo cambia el aspecto.
 
@@ -9,17 +9,19 @@ Addon para **WoW Forever** que hace que el maná de los cazadores se vea como **
 
 ## Instalación
 
-Copia la carpeta `FocoCazador` en `World of Warcraft/_forever_/Interface/AddOns/` y reinicia el juego.
+Copia la carpeta `HunterFocusBar` en `World of Warcraft/_forever_/Interface/AddOns/` y reinicia el juego.
 
 ## Comandos
 
+`/foco` funciona también como alias de `/hfb`.
+
 | Comando | Efecto |
 |---|---|
-| `/foco` | Estado del addon |
-| `/foco modo liso \| mascota \| tinte` | Estilo de la barra (`liso` por defecto) |
-| `/foco color R G B` | Color de la barra (0-255), `/foco color reset` para volver al de serie |
-| `/foco coste R G B` | Color del coste del hechizo, `/foco coste reset` |
-| `/foco ayuda` | Lista de comandos |
+| `/hfb` | Estado del addon |
+| `/hfb modo liso \| mascota \| tinte` | Estilo de la barra (`liso` por defecto) |
+| `/hfb color R G B` | Color de la barra (0-255), `/hfb color reset` para volver al de serie |
+| `/hfb coste R G B` | Color del coste del hechizo, `/hfb coste reset` |
+| `/hfb ayuda` | Lista de comandos |
 
 ## Notas técnicas
 
