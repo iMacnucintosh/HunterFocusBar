@@ -1,0 +1,7 @@
+## Interface: 16001
+## Title: Foco Cazador
+## Notes: Pinta la barra de maná del cazador del mismo naranja que el enfoque de las mascotas.
+## Author: Manu
+## Version: 1.0.0
+## SavedVariables: FocoCazadorDB
+FocoCazador.lua
