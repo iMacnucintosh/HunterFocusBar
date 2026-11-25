@@ -5,5 +5,4 @@
 ## Author: Manu
 ## IconTexture: Interface\AddOns\HunterFocusBar\media\icon
 ## Version: 1.0.0
-## SavedVariables: HunterFocusBarDB
 HunterFocusBar.lua

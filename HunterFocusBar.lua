@@ -1,104 +1,70 @@
--- HunterFocusBar: la barra de maná del cazador se pinta con el color del enfoque.
--- Solo cambia el aspecto; el recurso sigue siendo maná.
+-- HunterFocusBar: el maná de los cazadores se muestra como una barra de
+-- enfoque naranja. Solo cambia el aspecto; el recurso sigue siendo maná.
 --
 -- Notas sobre WoW Forever:
 --  * Usa un PlayerFrame propio con barras sin nombre: localizamos la de maná
 --    por posición (la vida va arriba, el maná justo debajo).
 --  * Los valores de las barras son "secretos": no se pueden comparar.
 --  * La textura de maná ya viene azul de fábrica: teñirla da un color sucio,
---    así que por defecto la cambiamos por una lisa teñible.
---  * El coste del hechizo que se está lanzando se dibuja con una textura
---    anclada al final del relleno de la barra; también la pintamos.
-
-local function Log(...) print("|cffff8040HunterFocusBar|r", ...) end
--- Errores internos: se ignoran en silencio (el addon no escribe nada en el chat
--- salvo cuando el jugador usa /hfb).
-local function Silent() end
+--    así que la cambiamos por una lisa teñible.
+--  * El coste del hechizo que se está lanzando va en un marco anclado al final
+--    del relleno de la barra; pintamos todo lo que contiene.
 
 local _, class = UnitClass("player")
-local IAMHUNTER = (class == "HUNTER")  -- tu barra solo si eres cazador
+local IAMHUNTER = (class == "HUNTER")  -- tu propia barra solo si eres cazador
 
 local LISO = "Interface\\TargetingFrame\\UI-StatusBar"
 
 local focus = PowerBarColor and PowerBarColor["FOCUS"] or { r = 1, g = 0.5, b = 0.25 }
-local DEF_MAIN = { focus.r, focus.g, focus.b }
-local DEF_COST = { 1, 0.78, 0.5 }   -- naranja claro para el coste del hechizo
+local R, G, B = focus.r, focus.g, focus.b    -- naranja del enfoque
+local CR, CG, CB = 1, 0.78, 0.5              -- naranja claro para el coste
 
 local hooked = {}      -- objetos ya enganchados
 local bars = {}        -- barras de maná encontradas
-local costs = {}       -- texturas/barras de coste encontradas
+local costs = {}       -- objetos de coste encontrados
 local origTex = {}     -- textura de relleno original de cada barra
-local petStyle         -- aspecto copiado de la barra de la mascota
 local painting = false
-
-local function DB()
-    HunterFocusBarDB = HunterFocusBarDB or {}
-    return HunterFocusBarDB
-end
-
-local function Mode() return DB().mode or "liso" end
-local function MainColor() local c = DB().color or DEF_MAIN return c[1], c[2], c[3] end
-local function CostColor() local c = DB().cost or DEF_COST return c[1], c[2], c[3] end
 
 ---------------------------------------------------------------------------
 -- Pintado
 ---------------------------------------------------------------------------
 local Paint, PaintCost, HookTexture
 
-local function SetBarTexture(bar, want)
+local function PaintRaw(bar)
     local tex = bar:GetStatusBarTexture()
     local cur = tex and (tex.GetAtlas and tex:GetAtlas() or tex:GetTexture())
-    if want and cur ~= want then
-        bar:SetStatusBarTexture(want)
+    if cur ~= LISO then
+        -- A través de la barra, para que conserve anclajes y relleno.
+        bar:SetStatusBarTexture(LISO)
         HookTexture(bar)
+        tex = bar:GetStatusBarTexture()
     end
-    return bar:GetStatusBarTexture()
+    if tex then
+        tex:SetDesaturated(false)
+        tex:SetVertexColor(R, G, B)
+    end
+    bar:SetStatusBarColor(R, G, B)
 end
 
-local function PaintRaw(bar)
-    local mode = Mode()
-    local R, G, B = MainColor()
-    local tex
-    if mode == "mascota" and petStyle then
-        tex = SetBarTexture(bar, petStyle.atlas or petStyle.file)
-        if tex then
-            tex:SetDesaturated(false)
-            bar:SetStatusBarColor(petStyle.sr, petStyle.sg, petStyle.sb)
-            tex:SetVertexColor(petStyle.vr, petStyle.vg, petStyle.vb)
-        end
-    elseif mode == "tinte" then
-        tex = bar:GetStatusBarTexture()
-        if tex then tex:SetDesaturated(true) end
-        bar:SetStatusBarColor(R, G, B)
-        if tex then tex:SetVertexColor(R, G, B) end
-    else -- liso
-        tex = SetBarTexture(bar, LISO)
-        if tex then tex:SetDesaturated(false) end
-        bar:SetStatusBarColor(R, G, B)
-        if tex then tex:SetVertexColor(R, G, B) end
-    end
+local function TintTexture(t)
+    t:SetDesaturated(true)
+    t:SetVertexColor(CR, CG, CB)
 end
 
 local function PaintCostRaw(obj)
-    local r, g, b = CostColor()
     local function Tint(o, depth)
         if depth > 6 then return end
         local t = o:GetObjectType()
         if t == "Texture" then
-            o:SetDesaturated(true)
-            o:SetVertexColor(r, g, b)
+            TintTexture(o)
         elseif t == "StatusBar" then
             local st = o:GetStatusBarTexture()
-            if st then st:SetDesaturated(true); st:SetVertexColor(r, g, b) end
-            o:SetStatusBarColor(r, g, b)
+            if st then TintTexture(st) end
+            o:SetStatusBarColor(CR, CG, CB)
         end
-        -- Contenedores (Forever usa un Frame para el coste): pintar su contenido.
         if o.GetRegions then
             for _, reg in ipairs({ o:GetRegions() }) do
-                if reg:GetObjectType() == "Texture" then
-                    reg:SetDesaturated(true)
-                    reg:SetVertexColor(r, g, b)
-                end
+                if reg:GetObjectType() == "Texture" then TintTexture(reg) end
             end
         end
         if o.GetChildren then
@@ -108,18 +74,13 @@ local function PaintCostRaw(obj)
     Tint(obj, 0)
 end
 
--- Ejecuta fn protegida: si falla, el indicador 'painting' no se queda
--- bloqueado (eso hacía que la barra volviera al azul) y se avisa una vez.
-local reported = {}
+-- Si un pintado falla, el indicador 'painting' no debe quedarse bloqueado
+-- (si no, la barra volvería al azul en la siguiente actualización del juego).
 local function Guarded(fn, obj)
     if painting or not obj then return end
     painting = true
-    local ok, err = pcall(fn, obj)
+    pcall(fn, obj)
     painting = false
-    if not ok and not reported[err] then
-        reported[err] = true
-        Silent(err)
-    end
 end
 
 function Paint(bar) Guarded(PaintRaw, bar) end
@@ -182,24 +143,22 @@ local function CollectBars(frame, depth, out)
     end
 end
 
--- Devuelve todas las barras del marco y la de poder (2.º grupo visible).
+-- Barra de poder de un marco: agrupa las barras visibles por altura
+-- (margen de 6 px); el 1.er grupo es la vida y el 2.º el poder.
 local function FindPowerBar(frame)
     local found = {}
     CollectBars(frame, 0, found)
     table.sort(found, function(a, b) return a.top > b.top end)
-    local group, lastTop, power = 0, nil, nil
+    local group, lastTop = 0, nil
     for _, e in ipairs(found) do
         if e.bar:IsVisible() then
             if not lastTop or lastTop - e.top > 6 then
                 group = group + 1
                 lastTop = e.top
             end
-            e.group = group
-            if group == 2 and not power then power = e end
+            if group == 2 then return e.bar end
         end
     end
-    if power then power.mana = true end
-    return found, power and power.bar
 end
 
 -- ¿Está 'region' anclada a alguno de los objetivos?
@@ -222,7 +181,7 @@ local function CollectRegions(frame, depth, out)
     end
 end
 
--- La barra de coste está anclada al relleno de la barra de maná.
+-- El coste del hechizo está anclado al relleno de la barra de maná.
 local function FindCostBars(mana)
     local fills = {}
     if origTex[mana] then fills[origTex[mana]] = true end
@@ -232,17 +191,15 @@ local function FindCostBars(mana)
     local candidates = {}
     CollectRegions(PlayerFrame, 0, candidates)
     for _, obj in ipairs(candidates) do
-        if not fills[obj] and obj ~= mana and AnchoredTo(obj, fills) then
+        if not fills[obj] and obj ~= mana and not hooked[obj] and AnchoredTo(obj, fills) then
             local t = obj:GetObjectType()
             if t == "Texture" or t == "StatusBar" then
-                if not hooked[obj] then
-                    costs[#costs + 1] = obj
-                    HookCostTree(obj)
-                end
+                costs[#costs + 1] = obj
+                HookCostTree(obj)
             end
         end
     end
-    -- Nombres de Blizzard, por si Forever los conserva.
+    -- Nombres de Blizzard, que Forever conserva para el coste.
     for _, obj in ipairs({ mana.ManaCostPredictionBar, PlayerFrame.myManaCostPredictionBar,
                            _G.PlayerFrameManaCostPredictionBar }) do
         if obj and not hooked[obj] then
@@ -252,40 +209,15 @@ local function FindCostBars(mana)
     end
 end
 
-local function CapturePetStyle()
-    if not PetFrame or not PetFrame:IsVisible() then return end
-    local _, petBar = FindPowerBar(PetFrame)
-    if not petBar then return end
-    local tex = petBar:GetStatusBarTexture()
-    if not tex then return end
-    local st = {}
-    st.atlas = tex.GetAtlas and tex:GetAtlas() or nil
-    if not st.atlas then st.file = tex:GetTexture() end
-    st.vr, st.vg, st.vb = tex:GetVertexColor()
-    st.sr, st.sg, st.sb = petBar:GetStatusBarColor()
-    petStyle = st
-end
-
-local function Scan()
-    if not IAMHUNTER then return {} end
-    local found, mana = FindPowerBar(PlayerFrame)
+local function RefreshPlayer()
+    if not IAMHUNTER then return end
+    local mana = FindPowerBar(PlayerFrame)
     if mana then
         Hook(mana)
         FindCostBars(mana)
     end
-    return found
-end
-
-local function RefreshUnsafe()
-    CapturePetStyle()
-    Scan()
     for _, bar in ipairs(bars) do Paint(bar) end
     for _, c in ipairs(costs) do PaintCost(c) end
-end
-
-local function Refresh()
-    local ok, err = pcall(RefreshUnsafe)
-    if not ok then Silent(err) end
 end
 
 local f = CreateFrame("Frame")
@@ -293,70 +225,16 @@ f:RegisterEvent("PLAYER_ENTERING_WORLD")
 f:RegisterEvent("PLAYER_LEVEL_UP")
 f:RegisterUnitEvent("UNIT_DISPLAYPOWER", "player")
 f:RegisterUnitEvent("UNIT_MAXPOWER", "player")
-f:RegisterUnitEvent("UNIT_PET", "player")
-f:RegisterUnitEvent("UNIT_SPELLCAST_START", "player")
-
----------------------------------------------------------------------------
--- Coste del hechizo, buscado en pleno casteo: es la textura visible que cae
--- dentro de la barra de maná y no es el relleno de ninguna barra. Su tamaño
--- depende del maná (valor secreto), así que si medirla da error también la
--- consideramos candidata.
----------------------------------------------------------------------------
-
-local function ScanCostDuringCast()
-    local mana = bars[1]
-    if not mana or not mana:IsVisible() then return end
-
-    -- Rellenos de todas las barras del PlayerFrame (vida, maná, ocultas...).
-    local fills = {}
-    local all = {}
-    CollectBars(PlayerFrame, 0, all)
-    for _, e in ipairs(all) do
-        local t = e.bar:GetStatusBarTexture()
-        if t then fills[t] = true end
-        fills[e.bar] = true
-    end
-    for _, t in pairs(origTex) do fills[t] = true end
-
-    local L, B, W, H = mana:GetRect()
-    local regions = {}
-    CollectRegions(PlayerFrame, 0, regions)
-    local nuevos = 0
-    for _, r in ipairs(regions) do
-        if not fills[r] and not hooked[r] and r:GetObjectType() == "Texture" and r:IsVisible() then
-            local ok, inside = pcall(function()
-                local l, b, w, h = r:GetRect()
-                if not l then return false end
-                local cx, cy = l + w / 2, b + h / 2
-                return cx >= L and cx <= L + W and cy >= B and cy <= B + H
-                       and w < W * 0.9 and h <= H + 2
-            end)
-            if (ok and inside) or not ok then
-                costs[#costs + 1] = r
-                HookRegion(r, function() PaintCost(r) end)
-                PaintCost(r)
-                nuevos = nuevos + 1
-            end
-        end
-    end
-end
-
-f:SetScript("OnEvent", function(_, event)
-    if event == "UNIT_SPELLCAST_START" then
-        C_Timer.After(0.05, function()
-            local ok, err = pcall(ScanCostDuringCast)
-            if not ok then Silent(err) end
-        end)
-        return
-    end
-    C_Timer.After(0.5, Refresh)
+f:SetScript("OnEvent", function()
+    -- Pequeño retraso para que el PlayerFrame de Forever termine de montarse.
+    C_Timer.After(0.5, function() pcall(RefreshPlayer) end)
 end)
 
 ---------------------------------------------------------------------------
--- Otros marcos (objetivo, objetivo del objetivo, foco, grupo...): esas
--- barras se reutilizan para cualquier unidad, así que no las tocamos. Encima
--- ponemos una barra naranja propia que copia su valor y solo se ve cuando la
--- unidad mostrada es un cazador (tú u otro jugador).
+-- Otros marcos (objetivo, objetivo del objetivo, foco, grupo): esas barras se
+-- reutilizan para cualquier unidad, así que no las tocamos. Encima ponemos
+-- una barra naranja propia que copia su valor y solo se ve cuando la unidad
+-- mostrada es un cazador (tú u otro jugador).
 ---------------------------------------------------------------------------
 local others = {}   -- [marco] = { bar = StatusBar, ov = StatusBar }
 
@@ -385,26 +263,14 @@ local function IsHunter(unit)
     return ok and yes == true
 end
 
-local function StyleOverlay(ov)
-    local R, G, B = MainColor()
-    if Mode() == "mascota" and petStyle then
-        ov:SetStatusBarTexture(petStyle.atlas or petStyle.file)
-        ov:SetStatusBarColor(petStyle.sr, petStyle.sg, petStyle.sb)
-        local t = ov:GetStatusBarTexture()
-        if t then t:SetVertexColor(petStyle.vr, petStyle.vg, petStyle.vb) end
-    else
-        ov:SetStatusBarTexture(LISO)
-        ov:SetStatusBarColor(R, G, B)
-    end
-end
-
 local function MakeOverlay(bar)
     local ov = CreateFrame("StatusBar", nil, bar)
     ov:SetAllPoints(bar)
     ov:SetFrameLevel(bar:GetFrameLevel())
     if bar.GetOrientation then ov:SetOrientation(bar:GetOrientation()) end
     if bar.GetReverseFill then ov:SetReverseFill(bar:GetReverseFill()) end
-    StyleOverlay(ov)
+    ov:SetStatusBarTexture(LISO)
+    ov:SetStatusBarColor(R, G, B)
     -- Mismas máscaras (bordes redondeados) que el relleno original.
     local src, dst = bar:GetStatusBarTexture(), ov:GetStatusBarTexture()
     if src and dst and src.GetNumMaskTextures then
@@ -413,18 +279,15 @@ local function MakeOverlay(bar)
             if m then dst:AddMaskTexture(m) end
         end
     end
-    local function Sync()
-        ov:SetMinMaxValues(bar:GetMinMaxValues())
-        ov:SetValue(bar:GetValue())
-    end
     hooksecurefunc(bar, "SetMinMaxValues", function(_, a, b) ov:SetMinMaxValues(a, b) end)
     hooksecurefunc(bar, "SetValue", function(_, v) ov:SetValue(v) end)
-    Sync()
+    ov:SetMinMaxValues(bar:GetMinMaxValues())
+    ov:SetValue(bar:GetValue())
     ov:Hide()
     return ov
 end
 
-local function UpdateOthersUnsafe()
+local function UpdateOthers()
     for _, def in ipairs(OtherFrames()) do
         local frame, unit = def[1], def[2]
         if frame then
@@ -434,8 +297,7 @@ local function UpdateOthersUnsafe()
             if show and not o then
                 local bar = frame.manabar or frame.ManaBar
                 if not bar or bar:GetObjectType() ~= "StatusBar" then
-                    local _
-                    _, bar = FindPowerBar(frame)
+                    bar = FindPowerBar(frame)
                 end
                 if bar then
                     o = { bar = bar, ov = MakeOverlay(bar) }
@@ -444,7 +306,6 @@ local function UpdateOthersUnsafe()
             end
             if o then
                 if show then
-                    StyleOverlay(o.ov)
                     o.ov:SetMinMaxValues(o.bar:GetMinMaxValues())
                     o.ov:SetValue(o.bar:GetValue())
                 end
@@ -454,20 +315,13 @@ local function UpdateOthersUnsafe()
     end
 end
 
-local function UpdateOthers()
-    local ok, err = pcall(UpdateOthersUnsafe)
-    if not ok and not reported[err] then
-        reported[err] = true
-        Silent(err)
-    end
-end
-
+-- Marcos de banda / grupo compactos: el juego pone el color en cada
+-- actualización, así que basta con teñir después si es cazador.
 if CompactUnitFrame_UpdatePowerColor then
     hooksecurefunc("CompactUnitFrame_UpdatePowerColor", function(frame)
         local bar = frame and frame.powerBar
         local unit = frame and (frame.displayedUnit or frame.unit)
         if bar and unit and IsHunter(unit) then
-            local R, G, B = MainColor()
             bar:SetStatusBarColor(R, G, B)
         end
     end)
@@ -482,96 +336,5 @@ fo:RegisterEvent("GROUP_ROSTER_UPDATE")
 fo:RegisterEvent("UNIT_DISPLAYPOWER")
 fo:SetScript("OnEvent", function()
     -- Primero dejamos que el juego actualice sus marcos.
-    C_Timer.After(0, UpdateOthers)
+    C_Timer.After(0, function() pcall(UpdateOthers) end)
 end)
-
----------------------------------------------------------------------------
--- /hfb (alias /foco)
----------------------------------------------------------------------------
-local function ParseColor(args)
-    local r, g, b = args:match("^(%S+)%s+(%S+)%s+(%S+)$")
-    r, g, b = tonumber(r), tonumber(g), tonumber(b)
-    if not (r and g and b) then return nil end
-    if r > 1 or g > 1 or b > 1 then r, g, b = r / 255, g / 255, b / 255 end
-    return { r, g, b }
-end
-
--- Textos: español si el cliente está en español, inglés en el resto.
-local ES = (GetLocale and GetLocale() or ""):sub(1, 2) == "es"
-local T = ES and {
-    help = {
-        "/hfb - estado",
-        "/hfb modo liso | mascota | tinte",
-        "/hfb color R G B - color de la barra (0-255), /hfb color reset",
-        "/hfb coste R G B - color del coste del hechizo, /hfb coste reset",
-    },
-    mode_set = "modo: %s - escribe /reload para aplicarlo",
-    mode_bad = "modos válidos: liso, mascota, tinte",
-    usage = "uso: /hfb %s R G B   (ej. 255 128 64)",
-    applied = "%s aplicado",
-    status = "modo: %s  color: %d %d %d  coste: %d %d %d",
-    bars = "barras de maná: %d - texturas de coste: %d",
-    more = "escribe /hfb ayuda para ver los comandos",
-} or {
-    help = {
-        "/hfb - status",
-        "/hfb mode smooth | pet | tint",
-        "/hfb color R G B - bar color (0-255), /hfb color reset",
-        "/hfb cost R G B - spell cost color, /hfb cost reset",
-    },
-    mode_set = "mode: %s - type /reload to apply it",
-    mode_bad = "valid modes: smooth, pet, tint",
-    usage = "usage: /hfb %s R G B   (e.g. 255 128 64)",
-    applied = "%s applied",
-    status = "mode: %s  color: %d %d %d  cost: %d %d %d",
-    bars = "mana bars: %d - cost textures: %d",
-    more = "type /hfb help to list the commands",
-}
-
--- Nombres de modo aceptados en ambos idiomas -> nombre interno.
-local MODES = { liso = "liso", smooth = "liso", mascota = "mascota", pet = "mascota",
-                tinte = "tinte", tint = "tinte" }
-local MODE_NAME = ES and { liso = "liso", mascota = "mascota", tinte = "tinte" }
-                      or { liso = "smooth", mascota = "pet", tinte = "tint" }
-
-SLASH_HUNTERFOCUSBAR1 = "/hfb"
-SLASH_HUNTERFOCUSBAR2 = "/foco"
-SlashCmdList.HUNTERFOCUSBAR = function(msg)
-    msg = strtrim((msg or ""):lower())
-    local cmd, args = msg:match("^(%S+)%s*(.*)$")
-
-    if cmd == "modo" or cmd == "mode" then
-        local m = MODES[args]
-        if m then
-            DB().mode = m
-            Log(T.mode_set:format(MODE_NAME[m]))
-        else
-            Log(T.mode_bad)
-        end
-        return
-    elseif cmd == "color" or cmd == "coste" or cmd == "cost" then
-        local key = cmd == "color" and "color" or "cost"
-        if args == "reset" then
-            DB()[key] = nil
-        else
-            local c = ParseColor(args)
-            if not c then Log(T.usage:format(cmd)) return end
-            DB()[key] = c
-        end
-        Refresh()
-        UpdateOthers()
-        Log(T.applied:format(cmd))
-        return
-    elseif cmd == "ayuda" or cmd == "help" then
-        for _, l in ipairs(T.help) do Log(l) end
-        return
-    end
-
-    Refresh()
-    local r, g, b = MainColor()
-    local cr, cg, cb = CostColor()
-    Log(T.status:format(MODE_NAME[Mode()] or Mode(),
-        r * 255, g * 255, b * 255, cr * 255, cg * 255, cb * 255))
-    Log(T.bars:format(#bars, #costs))
-    Log(T.more)
-end

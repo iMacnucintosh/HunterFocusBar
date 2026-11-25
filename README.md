@@ -10,23 +10,11 @@ A **WoW Forever** addon that makes hunter mana look like **Focus**: an orange ba
 
 - **Your bar (on a hunter):** the player frame mana bar turns orange, and the cost of the spell you are casting is shown in light orange.
 - **Other hunters:** on the target, target-of-target, focus, party and raid frames, any hunter player's mana is shown in orange (even when you play another class).
-- No chat spam: the addon only prints something when you use `/hfb`.
+- Nothing to configure: no commands, no options, no chat messages. Install it and it just works.
 
 ## Installation
 
 Copy the `HunterFocusBar` folder into `World of Warcraft/_forever_/Interface/AddOns/` and restart the game.
-
-## Commands
-
-`/foco` also works as an alias of `/hfb`.
-
-| Command | Effect |
-|---|---|
-| `/hfb` | Addon status |
-| `/hfb mode smooth \| pet \| tint` | Bar style (`smooth` by default) |
-| `/hfb color R G B` | Bar color (0-255), `/hfb color reset` for the default |
-| `/hfb cost R G B` | Spell cost color, `/hfb cost reset` |
-| `/hfb help` | List of commands |
 
 ## Technical notes
 
@@ -42,23 +30,11 @@ Addon para **WoW Forever** que hace que el maná de los cazadores se vea como **
 
 - **Tu barra (si eres cazador):** la barra de maná del marco de jugador pasa a naranja, y el coste del hechizo que estás lanzando se ve en naranja claro.
 - **Otros cazadores:** en los marcos de objetivo, objetivo del objetivo, foco, grupo y banda, el maná de cualquier jugador cazador se muestra en naranja (también si juegas con otra clase).
-- Sin mensajes en el chat: solo escribe algo cuando usas `/hfb`.
+- Nada que configurar: sin comandos, sin opciones y sin mensajes en el chat. Lo instalas y funciona.
 
 ### Instalación
 
 Copia la carpeta `HunterFocusBar` en `World of Warcraft/_forever_/Interface/AddOns/` y reinicia el juego.
-
-### Comandos
-
-`/foco` funciona también como alias de `/hfb`. Los comandos se pueden escribir en español o en inglés.
-
-| Comando | Efecto |
-|---|---|
-| `/hfb` | Estado del addon |
-| `/hfb modo liso \| mascota \| tinte` | Estilo de la barra (`liso` por defecto) |
-| `/hfb color R G B` | Color de la barra (0-255), `/hfb color reset` para volver al de serie |
-| `/hfb coste R G B` | Color del coste del hechizo, `/hfb coste reset` |
-| `/hfb ayuda` | Lista de comandos |
 
 ## License
 
