@@ -1,3 +1,5 @@
+<p align="center"><img src="media/logo-512.png" width="160" alt="Hunter Focus Bar"></p>
+
 # Hunter Focus Bar
 
 *[Español más abajo](#español)*

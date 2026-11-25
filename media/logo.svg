@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="70%">
+      <stop offset="0" stop-color="#3a2614"/>
+      <stop offset="1" stop-color="#110a05"/>
+    </radialGradient>
+    <linearGradient id="bronze" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#f1cf86"/>
+      <stop offset="0.5" stop-color="#b9842f"/>
+      <stop offset="1" stop-color="#6e4614"/>
+    </linearGradient>
+    <linearGradient id="fill" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffc07a"/>
+      <stop offset="0.45" stop-color="#ff8040"/>
+      <stop offset="1" stop-color="#c24a12"/>
+    </linearGradient>
+    <linearGradient id="track" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#0b0705"/>
+      <stop offset="1" stop-color="#2a1a0e"/>
+    </linearGradient>
+    <linearGradient id="shaft" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#e9dcc2"/>
+      <stop offset="1" stop-color="#fff6e4"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-60%" width="160%" height="220%">
+      <feGaussianBlur stdDeviation="10" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="barClip"><rect x="92" y="352" width="328" height="58" rx="14"/></clipPath>
+  </defs>
+
+  <!-- Fondo y marco -->
+  <rect x="8" y="8" width="496" height="496" rx="96" fill="url(#bg)"/>
+  <rect x="8" y="8" width="496" height="496" rx="96" fill="none" stroke="url(#bronze)" stroke-width="16"/>
+  <rect x="30" y="30" width="452" height="452" rx="78" fill="none" stroke="#000" stroke-opacity="0.45" stroke-width="4"/>
+
+  <!-- Arco -->
+  <path d="M168 70 C 70 140, 70 270, 168 340" fill="none" stroke="url(#bronze)" stroke-width="26" stroke-linecap="round"/>
+  <path d="M168 70 C 70 140, 70 270, 168 340" fill="none" stroke="#3a2410" stroke-opacity="0.5" stroke-width="6" stroke-linecap="round" transform="translate(6 0)"/>
+  <!-- Cuerda (tensada hacia atrás) -->
+  <polyline points="168,70 128,205 168,340" fill="none" stroke="#f3e6c8" stroke-width="5" stroke-linejoin="round"/>
+
+  <!-- Flecha -->
+  <g filter="url(#glow)">
+    <rect x="128" y="198" width="250" height="14" rx="7" fill="url(#shaft)"/>
+    <!-- punta -->
+    <path d="M370 172 L 438 205 L 370 238 L 386 205 Z" fill="#ff8040" stroke="#ffd2a0" stroke-width="4" stroke-linejoin="round"/>
+    <!-- plumas -->
+    <path d="M128 205 L 104 168 L 158 168 L 176 205 Z" fill="#ff8040" stroke="#ffd2a0" stroke-width="3" stroke-linejoin="round"/>
+    <path d="M128 205 L 104 242 L 158 242 L 176 205 Z" fill="#c24a12" stroke="#ffd2a0" stroke-width="3" stroke-linejoin="round"/>
+  </g>
+
+  <!-- Barra de enfoque -->
+  <rect x="80" y="340" width="352" height="82" rx="22" fill="url(#bronze)"/>
+  <rect x="92" y="352" width="328" height="58" rx="14" fill="url(#track)"/>
+  <g clip-path="url(#barClip)">
+    <rect x="92" y="352" width="262" height="58" fill="url(#fill)" filter="url(#glow)"/>
+    <rect x="92" y="355" width="262" height="16" fill="#fff" fill-opacity="0.28"/>
+    <!-- marcas de segmentos -->
+    <g stroke="#000" stroke-opacity="0.25" stroke-width="3">
+      <line x1="174" y1="352" x2="174" y2="410"/>
+      <line x1="256" y1="352" x2="256" y2="410"/>
+      <line x1="338" y1="352" x2="338" y2="410"/>
+    </g>
+  </g>
+</svg>
