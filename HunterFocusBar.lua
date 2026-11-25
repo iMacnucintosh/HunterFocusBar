@@ -496,12 +496,43 @@ local function ParseColor(args)
     return { r, g, b }
 end
 
-local AYUDA = {
-    "/hfb - diagnóstico",
-    "/hfb modo liso | mascota | tinte",
-    "/hfb color R G B - color de la barra (0-255), /hfb color reset",
-    "/hfb coste R G B - color del coste del hechizo, /hfb coste reset",
+-- Textos: español si el cliente está en español, inglés en el resto.
+local ES = (GetLocale and GetLocale() or ""):sub(1, 2) == "es"
+local T = ES and {
+    help = {
+        "/hfb - estado",
+        "/hfb modo liso | mascota | tinte",
+        "/hfb color R G B - color de la barra (0-255), /hfb color reset",
+        "/hfb coste R G B - color del coste del hechizo, /hfb coste reset",
+    },
+    mode_set = "modo: %s - escribe /reload para aplicarlo",
+    mode_bad = "modos válidos: liso, mascota, tinte",
+    usage = "uso: /hfb %s R G B   (ej. 255 128 64)",
+    applied = "%s aplicado",
+    status = "modo: %s  color: %d %d %d  coste: %d %d %d",
+    bars = "barras de maná: %d - texturas de coste: %d",
+    more = "escribe /hfb ayuda para ver los comandos",
+} or {
+    help = {
+        "/hfb - status",
+        "/hfb mode smooth | pet | tint",
+        "/hfb color R G B - bar color (0-255), /hfb color reset",
+        "/hfb cost R G B - spell cost color, /hfb cost reset",
+    },
+    mode_set = "mode: %s - type /reload to apply it",
+    mode_bad = "valid modes: smooth, pet, tint",
+    usage = "usage: /hfb %s R G B   (e.g. 255 128 64)",
+    applied = "%s applied",
+    status = "mode: %s  color: %d %d %d  cost: %d %d %d",
+    bars = "mana bars: %d - cost textures: %d",
+    more = "type /hfb help to list the commands",
 }
+
+-- Nombres de modo aceptados en ambos idiomas -> nombre interno.
+local MODES = { liso = "liso", smooth = "liso", mascota = "mascota", pet = "mascota",
+                tinte = "tinte", tint = "tinte" }
+local MODE_NAME = ES and { liso = "liso", mascota = "mascota", tinte = "tinte" }
+                      or { liso = "smooth", mascota = "pet", tinte = "tint" }
 
 SLASH_HUNTERFOCUSBAR1 = "/hfb"
 SLASH_HUNTERFOCUSBAR2 = "/foco"
@@ -509,40 +540,38 @@ SlashCmdList.HUNTERFOCUSBAR = function(msg)
     msg = strtrim((msg or ""):lower())
     local cmd, args = msg:match("^(%S+)%s*(.*)$")
 
-    if cmd == "modo" then
-        if args == "liso" or args == "mascota" or args == "tinte" then
-            DB().mode = args
-            Log("modo:", args, "- escribe /reload para aplicarlo")
+    if cmd == "modo" or cmd == "mode" then
+        local m = MODES[args]
+        if m then
+            DB().mode = m
+            Log(T.mode_set:format(MODE_NAME[m]))
         else
-            Log("modos válidos: liso, mascota, tinte")
+            Log(T.mode_bad)
         end
         return
-    elseif cmd == "color" or cmd == "coste" then
+    elseif cmd == "color" or cmd == "coste" or cmd == "cost" then
         local key = cmd == "color" and "color" or "cost"
         if args == "reset" then
             DB()[key] = nil
         else
             local c = ParseColor(args)
-            if not c then Log("uso: /hfb", cmd, "R G B   (ej. 255 128 64)") return end
+            if not c then Log(T.usage:format(cmd)) return end
             DB()[key] = c
         end
         Refresh()
         UpdateOthers()
-        Log(cmd, "aplicado")
+        Log(T.applied:format(cmd))
         return
     elseif cmd == "ayuda" or cmd == "help" then
-        for _, l in ipairs(AYUDA) do Log(l) end
+        for _, l in ipairs(T.help) do Log(l) end
         return
     end
 
     Refresh()
     local r, g, b = MainColor()
     local cr, cg, cb = CostColor()
-    Log("modo:", Mode(), string.format("color: %d %d %d  coste: %d %d %d",
+    Log(T.status:format(MODE_NAME[Mode()] or Mode(),
         r * 255, g * 255, b * 255, cr * 255, cg * 255, cb * 255))
-    Log("barras de maná:", #bars, "- texturas de coste:", #costs)
-    for i, c in ipairs(costs) do
-        Log("  coste", i, c:GetObjectType(), c:GetName() or "(sin nombre)")
-    end
-    Log("escribe /hfb ayuda para ver los comandos")
+    Log(T.bars:format(#bars, #costs))
+    Log(T.more)
 end
