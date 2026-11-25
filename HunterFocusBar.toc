@@ -4,5 +4,5 @@
 ## Notes-esES: Muestra el maná del cazador como una barra de enfoque naranja, igual que la de las mascotas. Solo estético.
 ## Author: Manu
 ## IconTexture: Interface\AddOns\HunterFocusBar\media\icon
-## Version: 1.0.0
+## Version: 1.0.1
 HunterFocusBar.lua
